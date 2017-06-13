@@ -1,4 +1,6 @@
-// Add surrendering, and soft total logic
+// Add count play deviations, insurance, dealer showing ten with 21 
+// split 21s not blackjack, createShoe function
+
 
 
 // Game configuration
@@ -11,19 +13,18 @@ var Player = {
   wins: 0,
   losses: 0,
   money: 0,
-  ordinary_bet: 10,
   bets: {
     0: 10,
     1: 20,
     2: 20,
-    3: 30,
-    4: 50,
+    3: 20,
+    4: 20,
     5: 50,
     6: 70,
     7: 70,
-    8: 100,
+    8: 80,
     9: 100,
-    10: 120
+    10: 100
   }
 };
 
@@ -36,13 +37,13 @@ var shoe = [];
 for (var i=0; i<shoe_size; i++) { shoe = shoe.concat(deck); }
 
 function shuffle(cards) {
-    for (var i = cards.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = cards[i];
-        cards[i] = cards[j];
-        cards[j] = temp;
-    }
-    return cards;
+  for (var i = cards.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = cards[i];
+      cards[i] = cards[j];
+      cards[j] = temp;
+  }
+  return cards;
 }
 
 shoe = shuffle(shoe);
@@ -141,17 +142,19 @@ function playHand() {
   function determinePlay(dealer, player) {
     console.log(dealer, player);
     var score = evaluateHand(player);
+    var soft = false;
+    for (var i=0; i<player.length; i++) {
+      if (player[i] == 11) soft = true; break;
+    }
     var show_card = dealer[1];
+    var tru = true_count(COUNT);
+    
     var dealt = player.length == 2;
     
+    if (score > 21) return ['LOSE', bet];
+    
     if (dealt) {
-      if (score == 16) {
-        if (show_card == 9 || show_card == 10 || show_card == 11) return ['SURRENDER', bet];
-      }
-      else if (score == 15){
-        if (show_card == 10) return ['SURRENDER', bet];
-      }
-      else if (score == 21) {
+      if (score == 21) {
         if (dealer[0] + dealer[1] == 21) return 'TIE';
         else return ['BLACKJACK', bet];
       }
@@ -160,24 +163,57 @@ function playHand() {
       }
     }
     
-    if (score > 21) return ['LOSE', bet];
-    if (score > 16) return stand();
-    
+    if (soft) {
+      // Soft Totals
+      if (dealt && score == 19 && show_card == 6) return double();
+      if (score > 18) stand();
+      switch(show_card) {
+        case 7 || 8:
+          if (score == 18) return stand();
+        case 5 || 6:
+          if (dealt) return double();
+          else if (score == 18) return stand();
+        case 4:
+          if (dealt && score < 14) return double();
+          else if (score == 18) return stand();
+        case 3:
+          if (dealt && score < 16) return double();
+          else if (score == 18) return stand();
+        case 2:
+          if (score == 18) {
+            if (dealt) return double();
+            else return stand();
+          }
+        default:
+          return hit();
+      }
+      
+    } else {
     // Hard Totals
-    switch(dealer[1]) {
-      case 11 || 10: 
-        return hit();
-      case 7 || 8 || 9:
-        if (dealt && score == 10) return double();
-      case 4 || 5 || 6:
-        if (score > 11) return stand();
-        if (dealt && score > 8) return double();
-      case 2 || 3:
-        if (score > 12) return stand();
-        if (score == 12) return hit();
-        if (dealt && score > 9) return double();
-      default:
-        return hit();
+      if (dealt) {
+        if (score == 16) {
+          if (show_card == 9 || show_card == 10 || show_card == 11) return ['SURRENDER', bet];
+        }
+        else if (score == 15){
+          if (show_card == 10) return ['SURRENDER', bet];
+        }
+      }
+      if (score > 16) return stand();
+      switch(show_card) {
+        case 11 || 10: 
+          return hit();
+        case 7 || 8 || 9:
+          if (dealt && score == 10) return double();
+        case 4 || 5 || 6:
+          if (score > 11) return stand();
+          if (dealt && score > 8) return double();
+        case 2 || 3:
+          if (score > 12) return stand();
+          if (score == 12) return hit();
+          if (dealt && score > 9) return double();
+        default:
+          return hit();
+      }
     }
     
     function hit() {
