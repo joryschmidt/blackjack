@@ -5,22 +5,27 @@
 
 var shoe_size = 6;
 var DAS = true;
-var initial_bet = 10;
 var COUNT = 0;
 
 var Player = {
   wins: 0,
   losses: 0,
   money: 0,
-  bet: initial_bet,
-  bet_scheme: {
+  ordinary_bet: 10,
+  bets: {
+    0: 10,
     1: 20,
     2: 20,
-    3: 50,
-    4: 50
+    3: 30,
+    4: 50,
+    5: 50,
+    6: 70,
+    7: 70,
+    8: 100,
+    9: 100,
+    10: 120
   }
 };
-
 
 // Create the shoe and shuffle it
 
@@ -30,30 +35,43 @@ for (var i=0; i<4; i++) { deck = deck.concat(vals); }
 var shoe = [];
 for (var i=0; i<shoe_size; i++) { shoe = shoe.concat(deck); }
 
-function shuffle(array) {
-    for (var i = array.length - 1; i > 0; i--) {
+function shuffle(cards) {
+    for (var i = cards.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
-        var temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
+        var temp = cards[i];
+        cards[i] = cards[j];
+        cards[j] = temp;
     }
-    return array;
+    return cards;
 }
 
 shoe = shuffle(shoe);
 
+
 // Gameplay functions
 
-
+function true_count(count) {
+  var decks_left = Math.floor(shoe.length/52);
+  return Math.floor(count/decks_left);
+}
 
 function playHand() {
+  var bet;
+  var tru = true_count(COUNT);
+  if (tru < 0) {
+    bet = Player.bets[0];
+  } else if (tru > 10) {
+    bet = Player.bets[10];
+  }
+  else {
+    bet = Player.bets[tru];
+  }
+  
   var dealer = [], player = [];
   // Deal cards
-  // get_card(dealer); get_card(player);
-  // get_card(dealer); get_card(player);
-  dealer = [10, 6]; player = [8, 8];
+  get_card(dealer); get_card(player);
+  get_card(dealer); get_card(player);
   
-  var bet = initial_bet;
   
   if (player[0] == player[1]) return determineSplit(dealer, player, false);
   return determinePlay(dealer, player);
@@ -86,10 +104,22 @@ function playHand() {
     var card = player[0];
     var show_card = dealer[1];
     switch(card) {
-      case 2:
+      case 2 || 3:
+        if (show_card < 8) return split(dealer, player[0], player[1], been_split);
+      case 4:
+        if (show_card == 5 || show_card == 6) return split(dealer, player[0], player[1], been_split);
+      case 6:
+        if (show_card < 7) return split(dealer, player[0], player[1], been_split);
+      case 7:
         if (show_card < 8) return split(dealer, player[0], player[1], been_split);
       case 8:
         return split(dealer, player[0], player[1], been_split);
+      case 9:
+        if (show_card == 9 || show_card == 8 || show_card < 7) return split(dealer, player[0], player[1], been_split);
+      case 11:
+        return split(dealer, player[0], player[1], been_split);
+      default:
+        return determinePlay(dealer, player);
     }
     
     function split(dealer, first_card, second_card, been_split) {
@@ -111,15 +141,26 @@ function playHand() {
   function determinePlay(dealer, player) {
     console.log(dealer, player);
     var score = evaluateHand(player);
+    var show_card = dealer[1];
     var dealt = player.length == 2;
     
-    if (dealt && score == 21) {
-      if (dealer[0] + dealer[1] == 21) return 'TIE';
-      else return 'BLACKJACK';
+    if (dealt) {
+      if (score == 16) {
+        if (show_card == 9 || show_card == 10 || show_card == 11) return ['SURRENDER', bet];
+      }
+      else if (score == 15){
+        if (show_card == 10) return ['SURRENDER', bet];
+      }
+      else if (score == 21) {
+        if (dealer[0] + dealer[1] == 21) return 'TIE';
+        else return ['BLACKJACK', bet];
+      }
+      else if (score == 11) {
+        return double();
+      }
     }
-    else if (score > 21) return ['LOSE', bet];
     
-    if (dealt && score == 11) return double();
+    if (score > 21) return ['LOSE', bet];
     if (score > 16) return stand();
     
     // Hard Totals
@@ -140,12 +181,12 @@ function playHand() {
     }
     
     function hit() {
-      player.push(shoe.pop());
+      get_card(player);
       return determinePlay(dealer, player);
     }
     
     function double() {
-      player.push(shoe.pop());
+      get_card(player);
       console.log('double down', player[player.length - 1]);
       score = evaluateHand(player);
       return determineOutcome(dealer, score, bet * 2);
@@ -167,26 +208,22 @@ function playHand() {
       else if (dealer_score == score) return 'TIE';
       else return ['WIN', bet];
     } else {
-      dealer.push(shoe.pop());
+      get_card(dealer);
       return determineOutcome(dealer, score, bet);
     }
   }
 }
 
-  
-
-
 function playShoe() {
-  while (shoe.length > 26) {
+  while (shoe.length > 78) {
     var outcome = playHand();
-    console.log(outcome);
+    console.log(outcome, COUNT);
     check(outcome);
   }
   
   function check(result) {
-    if (!result[0]) return;
     
-    else if (typeof result[0] != 'string') {
+    if (typeof result[0] != 'string') {
       result.forEach(function(el) {
         check(el);
       });
@@ -203,6 +240,10 @@ function playShoe() {
       Player.losses++;
       Player.money -= bet;
     }
+    else if (game == 'SURRENDER') {
+      Player.losses++;
+      Player.money -= bet * 0.5;
+    }
     else if (game == 'BLACKJACK') {
       Player.wins++;
       Player.money += bet * 1.5;
@@ -211,4 +252,7 @@ function playShoe() {
 }
 
 playShoe();
-console.log(Player);
+
+console.log('WINS:', Player.wins);
+console.log('LOSSES:', Player.losses);
+console.log('MONEY:', Player.money);
