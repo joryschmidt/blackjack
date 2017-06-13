@@ -145,34 +145,30 @@ function playHand() {
     }
     
     function double() {
-      var dbet = bet *= 2;
       player.push(shoe.pop());
       console.log('double down', player[player.length - 1]);
       score = evaluateHand(player);
-      return determineOutcome(dealer, score, dbet);
+      return determineOutcome(dealer, score, bet * 2);
     }
     
     function stand() {
-      return determineOutcome(dealer, score);
+      return determineOutcome(dealer, score, bet);
     }
   }
   
-    
-  
-  function determineOutcome(dealer, score, fbet) {
+  function determineOutcome(dealer, score, bet) {
     console.log(dealer, score);
-    if (!fbet) fbet = bet;
     
-    if (score > 21) return ['LOSE', fbet];
+    if (score > 21) return ['LOSE', bet];
     var dealer_score = evaluateHand(dealer);
-    if (dealer_score > 21) return ['WIN', fbet];
+    if (dealer_score > 21) return ['WIN', bet];
     else if (dealer_score > 16) {
-      if (dealer_score > score) return ['LOSE', fbet];
+      if (dealer_score > score) return ['LOSE', bet];
       else if (dealer_score == score) return 'TIE';
-      else return ['WIN', fbet];
+      else return ['WIN', bet];
     } else {
       dealer.push(shoe.pop());
-      return determineOutcome(dealer, score);
+      return determineOutcome(dealer, score, bet);
     }
   }
 }
@@ -181,7 +177,7 @@ function playHand() {
 
 
 function playShoe() {
-  while (shoe.length > 300) {
+  while (shoe.length > 26) {
     var outcome = playHand();
     console.log(outcome);
     check(outcome);
