@@ -10,8 +10,10 @@ var DAS = true;
 var COUNT = 0;
 
 var Player = {
-  wins: 0,
-  losses: 0,
+  hands_played: 0,
+  won: 0,
+  wins: {},
+  losses: {},
   money: 0,
   bets: {
     0: 10,
@@ -254,8 +256,10 @@ function playShoe() {
   while (shoe.length > 78) {
     var outcome = playHand();
     console.log(outcome, COUNT);
+    var tru = true_count(COUNT);
     check(outcome);
   }
+  
   
   function check(result) {
     
@@ -266,22 +270,27 @@ function playShoe() {
     } else {
       var game = result[0];
       var bet = result[1];
+      Player.hands_played++;
     }
     
+    if (!Player.wins[tru] && !Player.losses[tru]) Player.wins[tru] = 0; Player.losses[tru] = 0;
+    
     if (game == 'WIN') {
-      Player.wins++;
+      Player.won++;
+      Player.wins[tru]++;
       Player.money += bet;
     }
     else if (game == 'LOSE') {
-      Player.losses++;
+      Player.losses[tru]++;
       Player.money -= bet;
     }
     else if (game == 'SURRENDER') {
-      Player.losses++;
+      Player.losses[tru]++;
       Player.money -= bet * 0.5;
     }
     else if (game == 'BLACKJACK') {
-      Player.wins++;
+      Player.won++;
+      Player.wins[tru]++;
       Player.money += bet * 1.5;
     }
   }
@@ -289,6 +298,12 @@ function playShoe() {
 
 playShoe();
 
+
+for (var c in Player.wins) {
+  Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2);
+}
+
+console.log('WON', (Player.won/Player.hands_played).toPrecision(2) * 100, '% of');
+console.log(Player.hands_played + ' HANDS');
 console.log('WINS:', Player.wins);
-console.log('LOSSES:', Player.losses);
 console.log('MONEY:', Player.money);
