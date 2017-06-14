@@ -6,12 +6,14 @@
 // Game configuration
 
 var shoe_size = 6;
+var shoes = 10;
 var DAS = true;
 var COUNT = 0;
 
 var Player = {
   hands_played: 0,
   won: 0,
+  tied: 0,
   wins: {},
   losses: {},
   money: 0,
@@ -21,12 +23,12 @@ var Player = {
     2: 20,
     3: 20,
     4: 20,
-    5: 50,
-    6: 70,
-    7: 70,
-    8: 80,
-    9: 100,
-    10: 100
+    5: 20,
+    6: 50,
+    7: 50,
+    8: 50,
+    9: 50,
+    10: 50
   }
 };
 
@@ -36,20 +38,22 @@ var vals = [11,10,10,10,10,9,8,7,6,5,4,3,2];
 var deck = [];
 for (var i=0; i<4; i++) { deck = deck.concat(vals); }
 var shoe = [];
-for (var i=0; i<shoe_size; i++) { shoe = shoe.concat(deck); }
 
-function shuffle(cards) {
-  for (var i = cards.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var temp = cards[i];
-      cards[i] = cards[j];
-      cards[j] = temp;
+function createShoe() {
+  for (var i=0; i<shoe_size; i++) { shoe = shoe.concat(deck); }
+  
+  function shuffle(cards) {
+    for (var i = cards.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = cards[i];
+        cards[i] = cards[j];
+        cards[j] = temp;
+    }
+    return cards;
   }
-  return cards;
+  
+  shoe = shuffle(shoe);
 }
-
-shoe = shuffle(shoe);
-
 
 // Gameplay functions
 
@@ -273,7 +277,8 @@ function playShoe() {
       Player.hands_played++;
     }
     
-    if (!Player.wins[tru] && !Player.losses[tru]) Player.wins[tru] = 0; Player.losses[tru] = 0;
+    if (!Player.wins[tru]) Player.wins[tru] = 0; 
+    if (!Player.losses[tru]) Player.losses[tru] = 0;
     
     if (game == 'WIN') {
       Player.won++;
@@ -293,17 +298,26 @@ function playShoe() {
       Player.wins[tru]++;
       Player.money += bet * 1.5;
     }
+    else if (result == 'TIE') {
+      Player.tied++;
+    }
   }
 }
 
-playShoe();
+while (shoes > 0) {
+  createShoe();
+  playShoe();
+  shoes--;
+}
 
 
 for (var c in Player.wins) {
-  Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2);
+  Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2) * 100;
+  if (isNaN(Player.wins[c])) delete Player.wins[c];
 }
 
 console.log('WON', (Player.won/Player.hands_played).toPrecision(2) * 100, '% of');
 console.log(Player.hands_played + ' HANDS');
+console.log('TIED', (Player.tied/Player.hands_played).toPrecision(2) * 100, '%');
 console.log('WINS:', Player.wins);
 console.log('MONEY:', Player.money);
