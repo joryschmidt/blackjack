@@ -1,5 +1,5 @@
 // Add count play deviations, insurance, dealer showing ten with 21 
-// split 21s not blackjack, createShoe function
+// split 21s not blackjack 
 
 
 
@@ -146,14 +146,15 @@ function playHand() {
   }
   
   function determinePlay(dealer, player) {
-    console.log(dealer, player);
+    var show_card = dealer[1];
+    console.log(show_card, player);
     var score = evaluateHand(player);
     var soft = false;
     for (var i=0; i<player.length; i++) {
       if (player[i] == 11) soft = true; break;
     }
-    var show_card = dealer[1];
     var tru = true_count(COUNT);
+    
     
     var dealt = player.length == 2;
     
@@ -310,14 +311,29 @@ while (shoes > 0) {
   shoes--;
 }
 
+var pos_wins = 0, neg_wins = 0, pos_losses = 0, neg_losses= 0;
+// Stats
+for (var c in Player.wins) {
+  if (c > 0) {
+    pos_wins += Player.wins[c];
+    pos_losses += Player.losses[c];
+  } else {
+    neg_wins += Player.wins[c];
+    neg_losses += Player.losses[c];
+  }
+}
 
 for (var c in Player.wins) {
   Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2) * 100;
   if (isNaN(Player.wins[c])) delete Player.wins[c];
 }
 
+
 console.log('WON', (Player.won/Player.hands_played).toPrecision(2) * 100, '% of');
 console.log(Player.hands_played + ' HANDS');
 console.log('TIED', (Player.tied/Player.hands_played).toPrecision(2) * 100, '%');
-console.log('WINS:', Player.wins);
+console.log('POSITIVE WINS', (pos_wins/(pos_wins+pos_losses)).toPrecision(2) * 100, '%');
+console.log('NEGATIVE WINS', (neg_wins/(neg_wins+neg_losses)).toPrecision(2) * 100, '%');
+console.log('POSITIVE LOSSES', (pos_losses/(pos_wins+pos_losses)).toPrecision(2) * 100, '%');
+console.log('NEGATIVE LOSSES', (neg_losses/(neg_wins+neg_losses)).toPrecision(2) * 100, '%');
 console.log('MONEY:', Player.money);
