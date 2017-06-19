@@ -1,6 +1,6 @@
 // Add count play deviations, insurance, dealer showing ten with 21 
 // split 21s not blackjack 
-
+// dealer hands are playing out more than once with splits, must fix
 
 
 // Game configuration
@@ -8,7 +8,7 @@
 var shoe_size = 6;
 var shoes = 10;
 var DAS = true;
-var COUNT = 0;
+var COUNT;
 
 var Player = {
   hands_played: 0,
@@ -52,7 +52,9 @@ function createShoe() {
     return cards;
   }
   
+  console.log('NEW SHOE\n\n');
   shoe = shuffle(shoe);
+  COUNT = 0;
 }
 
 // Gameplay functions
@@ -67,8 +69,8 @@ function playHand() {
   var tru = true_count(COUNT);
   if (tru < 0) {
     bet = Player.bets[0];
-  } else if (tru > 10) {
-    bet = Player.bets[10];
+  } else if (tru >= 10) {
+    bet = Player.bets[5];
   }
   else {
     bet = Player.bets[tru];
@@ -78,7 +80,6 @@ function playHand() {
   // Deal cards
   get_card(dealer); get_card(player);
   get_card(dealer); get_card(player);
-  
   
   if (player[0] == player[1]) return determineSplit(dealer, player, false);
   return determinePlay(dealer, player);
@@ -93,7 +94,6 @@ function playHand() {
   
   function evaluateHand(player) {
     var total = player.reduce(function(p,c) { return p+c; });
-    console.log(total);
     player.forEach(function(card, index, hand) {
       if (card == 11 && total > 21) {
         player[index] = 1;
@@ -147,22 +147,24 @@ function playHand() {
   
   function determinePlay(dealer, player) {
     var show_card = dealer[1];
-    console.log(show_card, player);
     var score = evaluateHand(player);
+    console.log(show_card, player, score);
+    var dealt = player.length == 2;
     var soft = false;
     for (var i=0; i<player.length; i++) {
-      if (player[i] == 11) soft = true; break;
+      if (player[i] == 11) soft = true;
     }
     var tru = true_count(COUNT);
     
     
-    var dealt = player.length == 2;
-    
-    if (score > 21) return ['LOSE', bet];
+    if (score > 21) {
+      console.log(dealer, player);
+      return ['LOSE', bet];
+    }
     
     if (dealt) {
       if (score == 21) {
-        if (dealer[0] + dealer[1] == 21) return 'TIE';
+        if (evaluateHand(dealer) == 21) return 'TIE';
         else return ['BLACKJACK', bet];
       }
       else if (score == 11) {
@@ -170,14 +172,23 @@ function playHand() {
       }
     }
     
+    if (evaluateHand(dealer) == 21) return ['DEALER BLACKJACK', bet];
+    
     if (soft) {
+      console.log('in soft');
       // Soft Totals
-      if (dealt && score == 19 && show_card == 6) return double();
-      if (score > 18) stand();
+      if (dealt && score == 19) {
+        if (COUNT >= 0 && show_card == 6) return double();
+        if (tru >= 1 && show_card == 5) return double();
+        if (tru >= 3 && show_card == 4) return double();
+      }
+      if (score > 18) return stand();
       switch(show_card) {
-        case 7 || 8:
+        case 7:
+        case 8:
           if (score == 18) return stand();
-        case 5 || 6:
+        case 5:
+        case 6:
           if (dealt) return double();
           else if (score == 18) return stand();
         case 4:
@@ -191,36 +202,44 @@ function playHand() {
             if (dealt) return double();
             else return stand();
           }
-        default:
-          return hit();
       }
+      return hit();
       
     } else {
     // Hard Totals
+    console.log('in hard');
       if (dealt) {
         if (score == 16) {
           if (show_card == 9 || show_card == 10 || show_card == 11) return ['SURRENDER', bet];
         }
         else if (score == 15){
-          if (show_card == 10) return ['SURRENDER', bet];
+          if (show_card == 10) 
+            if (COUNT < 0) return hit();
+            else return ['SURRENDER', bet];
         }
       }
       if (score > 16) return stand();
       switch(show_card) {
-        case 11 || 10: 
+        case 11: 
+        case 10: 
           return hit();
-        case 7 || 8 || 9:
+        case 7:
+        case 8: 
+        case 9:
           if (dealt && score == 10) return double();
-        case 4 || 5 || 6:
+        case 4: 
+        case 5: 
+        case 6:
           if (score > 11) return stand();
           if (dealt && score > 8) return double();
-        case 2 || 3:
+        case 2: 
+        case 3:
+          if (score == 13 && COUNT <= -1) return hit();
           if (score > 12) return stand();
           if (score == 12) return hit();
           if (dealt && score > 9) return double();
-        default:
-          return hit();
       }
+      return hit();
     }
     
     function hit() {
@@ -243,6 +262,11 @@ function playHand() {
   function determineOutcome(dealer, score, bet) {
     console.log(dealer, score);
     
+    var soft = false;
+    for (var i=0; i<player.length; i++) {
+      if (player[i] == 11) soft = true; break;
+    }
+    
     if (score > 21) return ['LOSE', bet];
     var dealer_score = evaluateHand(dealer);
     if (dealer_score > 21) return ['WIN', bet];
@@ -250,6 +274,9 @@ function playHand() {
       if (dealer_score > score) return ['LOSE', bet];
       else if (dealer_score == score) return 'TIE';
       else return ['WIN', bet];
+    } else if (soft && dealer_score == 17){
+      get_card(dealer);
+      return determineOutcome(dealer, score, bet);
     } else {
       get_card(dealer);
       return determineOutcome(dealer, score, bet);
@@ -299,6 +326,10 @@ function playShoe() {
       Player.wins[tru]++;
       Player.money += bet * 1.5;
     }
+    else if (game == 'DEALER BLACKJACK') {
+      Player.losses[tru]++;
+      Player.money -= bet;
+    }
     else if (result == 'TIE') {
       Player.tied++;
     }
@@ -314,7 +345,7 @@ while (shoes > 0) {
 var pos_wins = 0, neg_wins = 0, pos_losses = 0, neg_losses= 0;
 // Stats
 for (var c in Player.wins) {
-  if (c > 0) {
+  if (c >= 0) {
     pos_wins += Player.wins[c];
     pos_losses += Player.losses[c];
   } else {
@@ -323,10 +354,10 @@ for (var c in Player.wins) {
   }
 }
 
-for (var c in Player.wins) {
-  Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2) * 100;
-  if (isNaN(Player.wins[c])) delete Player.wins[c];
-}
+// for (var c in Player.wins) {
+//   Player.wins[c] = (Player.wins[c]/(Player.wins[c] + Player.losses[c])).toPrecision(2) * 100;
+//   if (isNaN(Player.wins[c])) delete Player.wins[c];
+// }
 
 
 console.log('WON', (Player.won/Player.hands_played).toPrecision(2) * 100, '% of');
