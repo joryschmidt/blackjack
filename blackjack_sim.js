@@ -98,26 +98,7 @@ function playHand() {
   if (player[0] == player[1]) return determineSplit(dealer, player, false);
   return determinePlay(dealer, player);
   
-  // Gets another card from the shoe and puts it in a hand
-  function get_card(player) {
-    var new_card = shoe.pop();
-    player.push(new_card);
-    // Change logic here for counting system
-    if (new_card < 7) COUNT++;
-    if (new_card > 9) COUNT--;
-  }
   
-  // Determines value of a hand and whether an ace is considered 1 or 11
-  function evaluateHand(player) {
-    var total = player.reduce(function(p,c) { return p+c; });
-    player.forEach(function(card, index, hand) {
-      if (card == 11 && total > 21) {
-        player[index] = 1;
-        total = evaluateHand(player);
-      }
-    });
-    return total;
-  }
   
   // Determines whether a player should split
   function determineSplit(dealer, player, been_split) {
@@ -266,29 +247,51 @@ function playHand() {
       return determineOutcome(dealer, score, bet);
     }
     
-    function determineOutcome(dealer, score, bet) {
-      console.log(dealer, score);
-      
-      var soft = false;
-      for (var i=0; i<dealer.length; i++) {
-        if (dealer[i] == 11) soft = true; 
-      }
-      
-      if (score > 21) return ['LOSE', bet];
-      var dealer_score = evaluateHand(dealer);
-      if (dealer_score > 21) return ['WIN', bet];
-      else if (soft && dealer_score == 17){
-        get_card(dealer);
-        return determineOutcome(dealer, score, bet);
-      } else if (dealer_score > 16) {
-        if (dealer_score > score) return ['LOSE', bet];
-        else if (dealer_score == score) return 'TIE';
-        else return ['WIN', bet];
-      } else {
-        get_card(dealer);
-        return determineOutcome(dealer, score, bet);
-      }
+  }
+}
+
+// Gets another card from the shoe and puts it in a hand
+function get_card(player) {
+  var new_card = shoe.pop();
+  player.push(new_card);
+  // Change logic here for counting system
+  if (new_card < 7) COUNT++;
+  if (new_card > 9) COUNT--;
+}
+
+// Determines value of a hand and whether an ace is considered 1 or 11
+function evaluateHand(player) {
+  var total = player.reduce(function(p,c) { return p+c; });
+  player.forEach(function(card, index, hand) {
+    if (card == 11 && total > 21) {
+      player[index] = 1;
+      total = evaluateHand(player);
     }
+  });
+  return total;
+}
+
+function determineOutcome(dealer, score, bet) {
+  console.log(dealer, score);
+  
+  var soft = false;
+  for (var i=0; i<dealer.length; i++) {
+    if (dealer[i] == 11) soft = true; 
+  }
+  
+  if (score > 21) return ['LOSE', bet];
+  var dealer_score = evaluateHand(dealer);
+  if (dealer_score > 21) return ['WIN', bet];
+  else if (soft && dealer_score == 17){
+    get_card(dealer);
+    return determineOutcome(dealer, score, bet);
+  } else if (dealer_score > 16) {
+    if (dealer_score > score) return ['LOSE', bet];
+    else if (dealer_score == score) return 'TIE';
+    else return ['WIN', bet];
+  } else {
+    get_card(dealer);
+    return determineOutcome(dealer, score, bet);
   }
 }
 
