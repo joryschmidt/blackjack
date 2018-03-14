@@ -67,6 +67,10 @@ function true_count(count) {
   return Math.floor(count/decks_left);
 }
 
+// Initialize the hands to be matched outside playHand()
+var played_hands; // i.e. [[23, 10], [17, 15]] Array of scores and bets
+var dealer_cards;
+
 // Play a hand
 function playHand() {
   var bet;
@@ -84,19 +88,21 @@ function playHand() {
   
   // Deal cards
   var dealer = [], player = [];
+  played_hands = [];
   get_card(dealer); get_card(player);
   get_card(dealer); get_card(player);
+  dealer_cards = dealer;
   
   // If 21s pop up somewhere on the deal, handle that scenario first
   var pbj = evaluateHand(player) == 21;
   var dbj = evaluateHand(dealer) == 21;
-  if (dbj && pbj) return ['TIE', bet];
-  else if (pbj) return ['BLACKJACK', bet];
-  else if (dbj) return ['DEALER BLACKJACK', bet];
+  if (dbj && pbj) played_hands.push(['TIE', bet]);
+  else if (pbj) played_hands.push(['BLACKJACK', bet]);
+  else if (dbj) played_hands.push(['DEALER BLACKJACK', bet]);
   
   // If both cards are the same value, decide if player should split
-  if (player[0] == player[1]) return determineSplit(dealer, player, false);
-  return determinePlay(dealer, player);
+  if (player[0] == player[1]) determineSplit(dealer, player, false);
+  determinePlay(dealer, player);
   
   
   
@@ -105,43 +111,40 @@ function playHand() {
     // The been_split variable exists because if a hand has been split, both new hands can be split once more
     
     // In case of second splits
-    if (player[0] != player [1]) return determinePlay(dealer, player);
+    if (player[0] != player [1]) determinePlay(dealer, player);
     
     // split logic
     var card = player[0];
     var show_card = dealer[1];
     switch(card) {
       case 2 || 3:
-        if (show_card < 8) return split(dealer, player[0], player[1], been_split);
+        if (show_card < 8) split(dealer, player[0], player[1], been_split);
       case 4:
-        if (show_card == 5 || show_card == 6) return split(dealer, player[0], player[1], been_split);
+        if (show_card == 5 || show_card == 6) split(dealer, player[0], player[1], been_split);
       case 6:
-        if (show_card < 7) return split(dealer, player[0], player[1], been_split);
+        if (show_card < 7) split(dealer, player[0], player[1], been_split);
       case 7:
-        if (show_card < 8) return split(dealer, player[0], player[1], been_split);
+        if (show_card < 8) split(dealer, player[0], player[1], been_split);
       case 8:
-        return split(dealer, player[0], player[1], been_split);
+        split(dealer, player[0], player[1], been_split);
       case 9:
-        if (show_card == 9 || show_card == 8 || show_card < 7) return split(dealer, player[0], player[1], been_split);
+        if (show_card == 9 || show_card == 8 || show_card < 7) split(dealer, player[0], player[1], been_split);
       case 11:
-        return split(dealer, player[0], player[1], been_split);
+        split(dealer, player[0], player[1], been_split);
       default:
-        return determinePlay(dealer, player);
+        determinePlay(dealer, player);
     }
     
     function split(dealer, first_card, second_card, been_split) {
       console.log('SPLIT');
-      var first_hand, second_hand;
       var h1 = [first_card]; get_card(h1);
       var h2 = [second_card]; get_card(h2);
       if (been_split) {
-        first_hand = determinePlay(dealer.slice(), h1, true);
-        second_hand = determinePlay(dealer.slice(), h2, true);
-        return [first_hand, second_hand];
+        determinePlay(dealer, h1, true);
+        determinePlay(dealer, h2, true);
       }
-      first_hand = determineSplit(dealer.slice(), h1, true);
-      second_hand = determineSplit(dealer.slice(), h2, true);
-      return [first_hand, second_hand];
+      determineSplit(dealer, h1, true);
+      determineSplit(dealer, h2, true);
     }
   }
   
@@ -168,29 +171,29 @@ function playHand() {
     if (soft) {
       // Soft Totals
       if (dealt && score == 19) {
-        if (COUNT >= 0 && show_card == 6) return double();
-        if (tru >= 1 && show_card == 5) return double();
-        if (tru >= 3 && show_card == 4) return double();
+        if (COUNT >= 0 && show_card == 6) double();
+        if (tru >= 1 && show_card == 5) double();
+        if (tru >= 3 && show_card == 4) double();
       }
-      if (score > 18) return stand();
+      if (score > 18) stand();
       switch(show_card) {
         case 7:
         case 8:
-          if (score == 18) return stand();
+          if (score == 18) stand();
         case 5:
         case 6:
-          if (dealt) return double();
-          else if (score == 18) return stand();
+          if (dealt) double();
+          else if (score == 18) stand();
         case 4:
-          if (dealt && score < 14) return double();
-          else if (score == 18) return stand();
+          if (dealt && score < 14) double();
+          else if (score == 18) stand();
         case 3:
-          if (dealt && score < 16) return double();
-          else if (score == 18) return stand();
+          if (dealt && score < 16) double();
+          else if (score == 18) stand();
         case 2:
           if (score == 18) {
-            if (dealt) return double();
-            else return stand();
+            if (dealt) double();
+            else stand();
           }
       }
       return hit();
@@ -199,52 +202,52 @@ function playHand() {
     // Hard Totals
       if (dealt) {
         if (score == 16) {
-          if (show_card == 9 || show_card == 10 || show_card == 11) return ['SURRENDER', bet];
+          if (show_card == 9 || show_card == 10 || show_card == 11) played_hands.push(['SURRENDER', bet]);
         }
         else if (score == 15){
           if (show_card == 10) 
-            if (COUNT < 0) return hit();
-            else return ['SURRENDER', bet];
+            if (COUNT < 0) hit();
+            else played_hands.push(['SURRENDER', bet]);
         }
       }
-      if (score > 16) return stand();
+      if (score > 16) stand();
       switch(show_card) {
         case 11: 
         case 10: 
-          return hit();
+          hit();
         case 7:
         case 8: 
         case 9:
-          if (dealt && score == 10) return double();
+          if (dealt && score == 10) double();
         case 4: 
         case 5: 
         case 6:
-          if (score > 11) return stand();
-          if (dealt && score > 8) return double();
+          if (score > 11) stand();
+          if (dealt && score > 8) double();
         case 2: 
         case 3:
-          if (score == 13 && COUNT <= -1) return hit();
-          if (score > 12) return stand();
-          if (score == 12) return hit();
-          if (dealt && score > 9) return double();
+          if (score == 13 && COUNT <= -1) hit();
+          if (score > 12) stand();
+          if (score == 12) hit();
+          if (dealt && score > 9) double();
       }
       return hit();
     }
     
     function hit() {
       get_card(player);
-      return determinePlay(dealer, player);
+      determinePlay(dealer, player);
     }
     
     function double() {
       get_card(player);
       console.log('double down', player[player.length - 1]);
       score = evaluateHand(player);
-      return determineOutcome(dealer, score, bet * 2);
+      played_hands.push([score, bet * 2]);
     }
     
     function stand() {
-      return determineOutcome(dealer, score, bet);
+      played_hands.push([score, bet]);
     }
     
   }
@@ -271,33 +274,50 @@ function evaluateHand(player) {
   return total;
 }
 
-function determineOutcome(dealer, score, bet) {
-  console.log(dealer, score);
+
+function determineOutcome(dealer, played_hands) {
+  var outcomes = [];
+  console.log('played hands are: ', played_hands);
   
-  var soft = false;
-  for (var i=0; i<dealer.length; i++) {
-    if (dealer[i] == 11) soft = true; 
+  for (var i=0; i<played_hands.length; i++) {
+    if (played_hands[i][0] == 'SURRENDER') outcomes.push(played_hands[i]);
+    else matchCards(played_hands[i][0], played_hands[i][1]);
   }
   
-  if (score > 21) return ['LOSE', bet];
-  var dealer_score = evaluateHand(dealer);
-  if (dealer_score > 21) return ['WIN', bet];
-  else if (soft && dealer_score == 17){
-    get_card(dealer);
-    return determineOutcome(dealer, score, bet);
-  } else if (dealer_score > 16) {
-    if (dealer_score > score) return ['LOSE', bet];
-    else if (dealer_score == score) return 'TIE';
-    else return ['WIN', bet];
-  } else {
-    get_card(dealer);
-    return determineOutcome(dealer, score, bet);
+  function matchCards(score, bet) {
+    console.log(dealer, score);
+    if (score > 21) outcomes.push(['LOSE', bet]);
+    
+    // check if dealer's hand total is soft
+    var soft = false;
+    for (var i=0; i<dealer.length; i++) {
+      if (dealer[i] == 11) soft = true; 
+    }
+    
+    var dealer_score = evaluateHand(dealer);
+    if (dealer_score > 21) outcomes.push(['WIN', bet]);
+    
+    else if (soft && dealer_score == 17){
+      // Dealer must hit soft 17
+      get_card(dealer);
+      return determineOutcome(dealer, [score], bet);
+    } else if (dealer_score > 16) {
+      if (dealer_score > score) outcomes.push(['LOSE', bet]);
+      else if (dealer_score == score) outcomes.push('TIE');
+      else outcomes.push(['WIN', bet]);
+    } else {
+      get_card(dealer);
+      return determineOutcome(dealer, [score], bet);
+    }
   }
+  
+  return outcomes;
 }
 
 function playShoe() {
   while (shoe.length > 26) {
-    var outcome = playHand();
+    playHand(); 
+    var outcome = determineOutcome(dealer_cards, played_hands);
     var tru = true_count(COUNT);
     console.log(outcome, tru);
     check(outcome);
