@@ -1,6 +1,6 @@
 // Add count play deviations, insurance, dealer showing ten with 21 
 // split 21s not blackjack 
-// dealer hands are playing out more than once with splits, must fix
+// dealer hands are playing out more than once with splits, must fix: best bet is to change determine outcome so that it just collects decisions from playHand()
 
 // 15 vs 8 9-show not working
 
