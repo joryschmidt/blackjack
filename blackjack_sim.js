@@ -156,14 +156,12 @@ function playHand() {
     }
     var tru = true_count(COUNT);
     
-    
     if (score > 21) {
       console.log(dealer, player);
       return ['LOSE', bet];
     }
     
     if (dealt && score == 11) return double();
-    
     
     if (soft) {
       // Soft Totals
