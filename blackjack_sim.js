@@ -10,6 +10,8 @@
 var shoe_size = 6;
 var shoes = 50;
 var COUNT;
+var played_hands = [];
+var dealer_cards = [];
 
 var Player = {
   hands_played: 0,
@@ -84,8 +86,10 @@ function playHand() {
   
   // Deal cards
   var dealer = [], player = [];
+  played_hands = [];
   get_card(dealer); get_card(player);
   get_card(dealer); get_card(player);
+  dealer_cards = dealer;
   
   // If 21s pop up somewhere on the deal, handle that scenario first
   var pbj = evaluateHand(player) == 21;
@@ -238,11 +242,11 @@ function playHand() {
       get_card(player);
       console.log('double down', player[player.length - 1]);
       score = evaluateHand(player);
-      return determineOutcome(dealer, score, bet * 2);
+      return collectScores(score, bet * 2);
     }
     
     function stand() {
-      return determineOutcome(dealer, score, bet);
+      return collectScores(score, bet);
     }
     
   }
@@ -269,21 +273,32 @@ function evaluateHand(player) {
   return total;
 }
 
-function determineOutcome(dealer, score, bet) {
-  console.log(dealer, score);
-  
+function collectScores(score, bet) {
+  played_hands.push([score, bet]);
+}
+
+function dealerPlays(dealer) {
   var soft = false;
   for (var i=0; i<dealer.length; i++) {
     if (dealer[i] == 11) soft = true; 
   }
   
-  if (score > 21) return ['LOSE', bet];
   var dealer_score = evaluateHand(dealer);
-  if (dealer_score > 21) return ['WIN', bet];
-  else if (soft && dealer_score == 17){
+  if (soft && dealer_score == 17){
     get_card(dealer);
-    return determineOutcome(dealer, score, bet);
-  } else if (dealer_score > 16) {
+    return dealerPlays(dealer);
+  }
+}
+
+  
+function determineOutcome(dealer, score, bet) {
+  console.log(dealer, score);
+  if (score > 21) return ['LOSE', bet];
+  
+  var dealer_score = dealerPlays(dealer);
+  
+  if (dealer_score > 21) return ['WIN', bet];
+  if (dealer_score > 16) {
     if (dealer_score > score) return ['LOSE', bet];
     else if (dealer_score == score) return 'TIE';
     else return ['WIN', bet];
@@ -295,7 +310,11 @@ function determineOutcome(dealer, score, bet) {
 
 function playShoe() {
   while (shoe.length > 26) {
-    var outcome = playHand();
+    playHand();
+    var outcomes;
+    for (var i=0; i<played_hands.length; i++) {
+      outcomes.push(determineOutcome(dealer_cards, played_hands[i][0], played_hands[i][1]));
+    }
     var tru = true_count(COUNT);
     console.log(outcome, tru);
     check(outcome);
